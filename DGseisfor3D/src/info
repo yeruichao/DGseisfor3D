@@ -1,0 +1,8 @@
+
+                          Current Number of Cores
+Queue                 Total    Queue      Run     Free      Max Walltime
+===============    ====================================    ==============
+debug                    64       16       16       48           0:30:00
+gmig                    192        0      176       16         336:00:00
+standby               9,088   28,795    3,253      394           4:00:00
+
