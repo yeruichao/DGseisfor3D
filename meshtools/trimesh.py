@@ -1,6 +1,7 @@
 import numpy
-import mesh_util
-import vis_util
+from .mesh_util import pickeles,ele_center,det3,L2norm,mesh_join
+from .vis_util import vtuxml_head,vtuxml_point,vtuxml_cell,\
+        vtuxml_var,vtuxml_end
 
 def tri_facenormal(nod,ele):
     # computes outer normal direction of triangular mesh
@@ -11,7 +12,7 @@ def tri_facenormal(nod,ele):
     a1=nod.T[ele[1]-1]-nod.T[ele[0]-1]
     a2=nod.T[ele[2]-1]-nod.T[ele[0]-1]
     n=numpy.cross(a1,a2).T
-    a=mesh_util.L2norm(n)
+    a=L2norm(n)
     return n/numpy.tile(a,(3,1))
 
 def tri2edge(ele):
@@ -29,7 +30,7 @@ def tri2edge(ele):
     l=numpy.array([2,3,1,3,1,2],dtype=int)-1
     edge=ele[l].T.reshape((Nele*3,2)).T
     tid=numpy.arange(Nele)+1
-    tid=numpy.tile(tid,(3,1)).flatten(1)
+    tid=numpy.tile(tid,(3,1)).T.flatten()
     ii=edge[0]<edge[1]
     tmp=edge[0][ii]
     edge[0][ii]=edge[1][ii]
@@ -38,7 +39,7 @@ def tri2edge(ele):
     Nedge=edge.shape[1]
     Tid=T2E.argsort()
     eid=T2E[Tid]
-    Vid=ele.flatten(1)[Tid]
+    Vid=ele.T.flatten()[Tid]
     Tid=tid[Tid]
     Eid,tmp=numpy.unique(eid,return_index=True)
     E2T=-numpy.ones((2,Nedge),dtype=int)
@@ -52,7 +53,7 @@ def tri2edge(ele):
     T2E.shape=(Nele,3)
     T2E=T2E.T
     tid=numpy.arange(Nele)+1
-    neigh=E2T.T[T2E.flatten(0)].sum(axis=1) \
+    neigh=E2T.T[T2E.flatten()].sum(axis=1) \
             -numpy.hstack((tid,tid,tid))
     neigh.shape=(3,Nele)
     ID=E2T[0]>E2T[1]
@@ -84,7 +85,7 @@ class trimesh:
                 self.nei=neigh
 
     def pickeles(self,eid=[]):
-        ele,nid=mesh_util.pickeles(self.ele.copy(),eid=eid)
+        ele,nid=pickeles(self.ele.copy(),eid=eid)
         nod=self.nod[:,nid]
         if eid!=[] and self.att!=[]:
             att=self.att[eid]
@@ -95,7 +96,7 @@ class trimesh:
     def areas(self):
         if self.nod.shape[0] == 2:
             tmp=numpy.ones(self.Nele)
-            return mesh_util.det3(\
+            return det3(\
                 self.nod[0][self.ele[0]-1],\
                 self.nod[0][self.ele[1]-1],\
                 self.nod[0][self.ele[2]-1],\
@@ -108,23 +109,23 @@ class trimesh:
             a1=p[self.ele[0]-1]-p[self.ele[1]-1]
             a2=p[self.ele[0]-1]-p[self.ele[2]-1]
             a=numpy.cross(a1,a2).T
-            return mesh_util.L2norm(a)
+            return L2norm(a)
 
     def centers(self):
-        return mesh_util.ele_center(self.nod,self.ele)
+        return ele_center(self.nod,self.ele)
 
     def output_vtu(self,filename):
         if self.att != []:
-            fh=vis_util.vtuxml_head(filename,self.Nnod,self.Nele,\
+            fh=vtuxml_head(filename,self.Nnod,self.Nele,\
                 self.nod.shape[0],self.ele.shape[0],CellScals=['att'])
         else:
-            fh=vis_util.vtuxml_head(filename,self.Nnod,self.Nele,\
+            fh=vtuxml_head(filename,self.Nnod,self.Nele,\
                 self.nod.shape[0],self.ele.shape[0])
-        vis_util.vtuxml_point(fh,self.nod)
-        vis_util.vtuxml_cell(fh,self.ele)
+        vtuxml_point(fh,self.nod)
+        vtuxml_cell(fh,self.ele)
         if self.att != []:
-            vis_util.vtuxml_var(fh,self.att)
-        vis_util.vtuxml_end(fh)
+            vtuxml_var(fh,self.att)
+        vtuxml_end(fh)
 
     def facenormal(self):
         nod=self.nod
@@ -134,7 +135,7 @@ class trimesh:
         return tri_facenormal(nod,ele)
 
     def join(self,tri):
-        nod,ele,att=mesh_util.mesh_join(self,tri)
+        nod,ele,att=mesh_join(self,tri)
         return trimesh(nod=nod,ele=ele,att=att)
 
 def read_triangle_file(basename,elemap=False,dim=2):

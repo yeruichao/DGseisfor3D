@@ -1,4 +1,6 @@
 import numpy
+import sys
+sys.path.insert(0,'../../')
 from scipy.spatial import Delaunay
 import matplotlib.pyplot as plt
 import meshtools.tetmesh as tetmesh
@@ -27,7 +29,9 @@ x,y=numpy.meshgrid(numpy.arange(-xm,xm+dh,dh),
 z=numpy.ones(x.shape)*0.0
 xy=numpy.array([x.flatten(),y.flatten()]).T
 Tri = Delaunay(xy)
-tri = numpy.array(map(list, zip(*Tri.simplices.copy())))
+#tri = numpy.array(map(list, zip(*Tri.simplices.copy())))
+tri = numpy.array(Tri.simplices.copy()).T
+print (tri.shape)
 xy=numpy.array([x.flatten(),y.flatten(),z.flatten()])
 flag = trimesh.tri_facenormal(xy,tri+1)[2]<0
 tri[1][flag],tri[2][flag]=tri[2][flag],tri[1][flag]
@@ -46,7 +50,7 @@ tet,topsurf = tet.tile_isolated(dh,direction='z',trisurf=topsurf,att=1)
 
 tet.nod[2]=tet.nod[2].max()-tet.nod[2]
 for i in range(3):
-    print tet.nod[i].min(),tet.nod[i].max()
+    print (tet.nod[i].min(),tet.nod[i].max())
 nod=tet.nod.copy()
 ele=tet.ele.copy()
 tet.ele[[0,1],:]=tet.ele[[1,0],:]
@@ -98,7 +102,7 @@ dVt0=1e-15;
 porder=3
 
 #for i in range(3):
-#    print Rupt.nod[i].min(), Rupt.nod[i].max()
+#    print (Rupt.nod[i].min(), Rupt.nod[i].max())
 
 p2n=DG_util.porder2nodal()
 x,y,z=p2n.tri_nodal_coord(Rupt,porder)

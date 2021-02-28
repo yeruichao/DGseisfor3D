@@ -1,4 +1,6 @@
 import numpy
+import sys
+sys.path.insert(0,'../../')
 import meshtools.draw_util as draw_util
 import meshtools.trimesh as trimesh
 import meshtools.mesh_util as mesh_util

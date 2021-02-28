@@ -5,7 +5,7 @@ def pickeles(ele,eid=[]):
         ele=ele[:,eid]
     Nnod=ele.max()
     flag=numpy.zeros(Nnod,dtype=int)
-    flag[ele.flatten(0)-1]=1
+    flag[ele.flatten()-1]=1
     nid=flag.nonzero()[0]
     Nnod=len(nid)
     flag[nid]=numpy.arange(Nnod)+1 

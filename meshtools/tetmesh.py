@@ -1,14 +1,16 @@
 import numpy
-import trimesh
-import mesh_util
-import vis_util
+from .trimesh import trimesh,tri_facenormal,tri2edge
+from .mesh_util import pickeles,ele_center,det4,dotprod,L2norm,\
+        sph2cart,cart2sph,mesh_join
+from .vis_util import vtuxml_head,vtuxml_point,vtuxml_cell,\
+        vtuxml_var,vtuxml_end
 
 def tet2face(tet):
     Nele=tet.shape[1]
     l=numpy.array([2,3,4,1,4,3,1,2,4,1,3,2],dtype=int)-1
     face=tet[l].T.reshape((Nele*4,3)).T
     tid=numpy.arange(Nele)+1
-    tid=numpy.tile(tid,(4,1)).flatten(1)
+    tid=numpy.tile(tid,(4,1)).T.flatten()
     ii=face[0]>face[1]
     tmp=face[0][ii]
     face[0][ii]=face[1][ii]
@@ -25,7 +27,7 @@ def tet2face(tet):
     Nface=face.shape[1]
     Tid=T2F.argsort()
     fid=T2F[Tid]
-    Vid=tet.flatten(1)[Tid]
+    Vid=tet.T.flatten()[Tid]
     Tid=tid[Tid]
     Fid,tmp=numpy.unique(fid,return_index=True)
     F2T=-numpy.ones((2,Nface),dtype=int)
@@ -39,7 +41,7 @@ def tet2face(tet):
     T2F.shape=(Nele,4)
     T2F=T2F.T
     tid=numpy.arange(Nele)+1
-    neigh=F2T.T[T2F.flatten(0)].sum(axis=1) \
+    neigh=F2T.T[T2F.flatten()].sum(axis=1) \
             -numpy.hstack((tid,tid,tid,tid))
     neigh.shape=(4,Nele)
     ID=F2T[0]>F2T[1]
@@ -101,7 +103,7 @@ class tetmesh:
         return self
 
     def sample(self,ID):
-        ele,nid=mesh_util.pickeles(self.ele,ID)
+        ele,nid=pickeles(self.ele,ID)
         nod=self.nod.T[nid].T
         at = []
         if self.att != []:
@@ -122,11 +124,11 @@ class tetmesh:
         tet1=tetmesh(self.nod,numpy.vstack((ele2tetnod,F2V[1])))
         ID1=tet1.volumes()>0.0
         del tet1
-        ele,nid=mesh_util.pickeles(self.face,ID)
+        ele,nid=pickeles(self.face,ID)
         tmp=ele[[1,0],:];ele[:2,ID1]=tmp[:,ID1]
         tmp=ele2tetnod[[1,0],:];ele2tetnod[:2,ID1]=tmp[:,ID1]
         nod=self.nod[:,nid]
-        tri=trimesh.trimesh(nod,ele)
+        tri=trimesh(nod,ele)
         tri.ele2tetnod=ele2tetnod
         tri.nid2tetnod=nid+1
         tri.F2V=F2V
@@ -135,7 +137,7 @@ class tetmesh:
 
     def int_trimesh(self,bnd=False):
         if self.att==[]:
-            print 'No interface found'
+            print ('No interface found')
             return []
         if not hasattr(self, 'F2T'):
             face,T2F,F2T,neigh,F2V=tet2face(self.ele)
@@ -149,7 +151,7 @@ class tetmesh:
         ID = fAt[0]!=fAt[1] 
         if not bnd:
             ID = numpy.logical_and(ID,fAt[0]>=0)
-        ele,nid=mesh_util.pickeles(self.face,eid=ID)
+        ele,nid=pickeles(self.face,eid=ID)
         ele2tetnod=self.face[:,ID]
         nod=self.nod[:,nid]
         F2V=self.F2V[:,ID]
@@ -159,7 +161,7 @@ class tetmesh:
         del tet1
         tmp=ele[[1,0],:];ele[:2,ID1]=tmp[:,ID1]
         tmp=ele2tetnod[[1,0],:];ele2tetnod[:2,ID1]=tmp[:,ID1]
-        tri=trimesh.trimesh(nod,ele)
+        tri=trimesh(nod,ele)
         tri.ele2tetnod=ele2tetnod
         tri.nid2tetnod=nid+1
         tri.F2V=F2V
@@ -167,7 +169,7 @@ class tetmesh:
         return tri
 
     def pickeles(self,eid=[]):
-        ele,nid=mesh_util.pickeles(self.ele.copy(),eid=eid)
+        ele,nid=pickeles(self.ele.copy(),eid=eid)
         nod=self.nod[:,nid]
         if eid!=[] and self.att!=[]:
             att=self.att[eid]
@@ -176,11 +178,11 @@ class tetmesh:
         return tetmesh(nod=nod,ele=ele,att=att)
 
     def centers(self):
-        return mesh_util.ele_center(self.nod,self.ele)
+        return ele_center(self.nod,self.ele)
 
     def volumes(self):
         tmp=numpy.ones(self.Nele)
-        return -mesh_util.det4(\
+        return -det4(\
                 self.nod[0][self.ele[0]-1],\
                 self.nod[0][self.ele[1]-1],\
                 self.nod[0][self.ele[2]-1],\
@@ -198,10 +200,10 @@ class tetmesh:
     def inscrib_radius(self,vol=[]):
         if vol == []:
             vol=self.volumes()
-        a1=trimesh.trimesh(self.nod,self.ele[[0,2,1]]).areas()
-        a2=trimesh.trimesh(self.nod,self.ele[[0,1,3]]).areas()
-        a3=trimesh.trimesh(self.nod,self.ele[[0,3,2]]).areas()
-        a4=trimesh.trimesh(self.nod,self.ele[[1,2,3]]).areas()
+        a1=trimesh(self.nod,self.ele[[0,2,1]]).areas()
+        a2=trimesh(self.nod,self.ele[[0,1,3]]).areas()
+        a3=trimesh(self.nod,self.ele[[0,3,2]]).areas()
+        a4=trimesh(self.nod,self.ele[[1,2,3]]).areas()
         return vol/(a1+a2+a3+a4)/3.0
 
     def subscrib_radius(self,vol=[]):
@@ -210,13 +212,13 @@ class tetmesh:
         a=self.nod.T[self.ele[1]-1]-self.nod.T[self.ele[0]-1]
         b=self.nod.T[self.ele[2]-1]-self.nod.T[self.ele[0]-1]
         c=self.nod.T[self.ele[3]-1]-self.nod.T[self.ele[0]-1]
-        r = numpy.tile(mesh_util.dotprod(a.T,a.T),(3,1))\
+        r = numpy.tile(dotprod(a.T,a.T),(3,1))\
                 *numpy.cross(b,c).T + \
-            numpy.tile(mesh_util.dotprod(b.T,b.T),(3,1))\
+            numpy.tile(dotprod(b.T,b.T),(3,1))\
                 *numpy.cross(c,a).T + \
-            numpy.tile(mesh_util.dotprod(c.T,c.T),(3,1))\
+            numpy.tile(dotprod(c.T,c.T),(3,1))\
                 *numpy.cross(a,b).T 
-        return mesh_util.L2norm(r)/vol/12.0
+        return L2norm(r)/vol/12.0
 
     def quality(self,vols=[]):
         if vols==[]:
@@ -224,46 +226,46 @@ class tetmesh:
         r=self.inscrib_radius(vols)
         R=self.subscrib_radius(vols)
         l=numpy.array([1,3,2],dtype=int)-1
-        n1=trimesh.tri_facenormal(self.nod,self.ele[l])
+        n1=tri_facenormal(self.nod,self.ele[l])
         l=numpy.array([1,2,4],dtype=int)-1
-        n2=trimesh.tri_facenormal(self.nod,self.ele[l])
+        n2=tri_facenormal(self.nod,self.ele[l])
         l=numpy.array([1,4,3],dtype=int)-1
-        n3=trimesh.tri_facenormal(self.nod,self.ele[l])
+        n3=tri_facenormal(self.nod,self.ele[l])
         l=numpy.array([2,3,4],dtype=int)-1
-        n4=trimesh.tri_facenormal(self.nod,self.ele[l])
+        n4=tri_facenormal(self.nod,self.ele[l])
         th=numpy.pi-numpy.vstack(( \
-                numpy.arccos(mesh_util.dotprod(n1,n2)),\
-                numpy.arccos(mesh_util.dotprod(n1,n2)),\
-                numpy.arccos(mesh_util.dotprod(n1,n2)),\
-                numpy.arccos(mesh_util.dotprod(n1,n2)),\
-                numpy.arccos(mesh_util.dotprod(n1,n2)),\
-                numpy.arccos(mesh_util.dotprod(n1,n2)) ))
+                numpy.arccos(dotprod(n1,n2)),\
+                numpy.arccos(dotprod(n1,n2)),\
+                numpy.arccos(dotprod(n1,n2)),\
+                numpy.arccos(dotprod(n1,n2)),\
+                numpy.arccos(dotprod(n1,n2)),\
+                numpy.arccos(dotprod(n1,n2)) ))
         ang=th.min(axis=1)
         Ang=th.max(axis=1)
         k=R/r
-        print "ele number = ", self.Nele
-        print "vtx number = ", self.Nnod
-        print "max volume = ", vols.max()
-        print "min volume = ", vols.min()
-        print "max insc r = ", r.max()
-        print "min insc r = ", r.min()
-        print "max R/r    = ", k.max()
-        print "min R/r    = ", k.min()
-        print "max Angle  = ", Ang.max()/numpy.pi*180.0
-        print "min Angle  = ", ang.min()/numpy.pi*180.0
+        print ("ele number = ", self.Nele               )
+        print ("vtx number = ", self.Nnod               )
+        print ("max volume = ", vols.max()              )
+        print ("min volume = ", vols.min()              )
+        print ("max insc r = ", r.max()                 )
+        print ("min insc r = ", r.min()                 )
+        print ("max R/r    = ", k.max()                 )
+        print ("min R/r    = ", k.min()                 )
+        print ("max Angle  = ", Ang.max()/numpy.pi*180.0)
+        print ("min Angle  = ", ang.min()/numpy.pi*180.0)
 
     def output_vtu(self,filename):
         if self.att != []:
-            fh=vis_util.vtuxml_head(filename,self.Nnod,self.Nele,\
+            fh=vtuxml_head(filename,self.Nnod,self.Nele,\
                 self.nod.shape[0],self.ele.shape[0],CellScals=['att'])
         else:
-            fh=vis_util.vtuxml_head(filename,self.Nnod,self.Nele,\
+            fh=vtuxml_head(filename,self.Nnod,self.Nele,\
                 self.nod.shape[0],self.ele.shape[0])
-        vis_util.vtuxml_point(fh,self.nod)
-        vis_util.vtuxml_cell(fh,self.ele)
+        vtuxml_point(fh,self.nod)
+        vtuxml_cell(fh,self.ele)
         if self.att != []:
-            vis_util.vtuxml_var(fh,self.att)
-        vis_util.vtuxml_end(fh)
+            vtuxml_var(fh,self.att)
+        vtuxml_end(fh)
 
     def output_tetgen(self,filename):
         nod=self.nod.T
@@ -318,9 +320,9 @@ class tetmesh:
         nod=numpy.hstack((self.nod,nod.T))
         Nele=self.Nele*8
         ele=numpy.vstack((self.ele,T2E+self.Nnod))
-        d1=mesh_util.L2norm(nod.T[ele[5]-1].T-nod.T[ele[8]-1].T)
-        d2=mesh_util.L2norm(nod.T[ele[9]-1].T-nod.T[ele[4]-1].T)
-        d3=mesh_util.L2norm(nod.T[ele[6]-1].T-nod.T[ele[7]-1].T)
+        d1=L2norm(nod.T[ele[5]-1].T-nod.T[ele[8]-1].T)
+        d2=L2norm(nod.T[ele[9]-1].T-nod.T[ele[4]-1].T)
+        d3=L2norm(nod.T[ele[6]-1].T-nod.T[ele[7]-1].T)
         id1 = numpy.logical_and(d1<=d2, d1<=d3)
         id2 = numpy.logical_and(d2< d1, d2<=d3)
         id3 = numpy.logical_not(numpy.logical_or(id1, id2))
@@ -330,10 +332,10 @@ class tetmesh:
         a=[]
         if self.att != []:
             a=numpy.hstack((\
-                    numpy.tile(self.att[id1],(8,1)).flatten(1),\
-                    numpy.tile(self.att[id2],(8,1)).flatten(1),\
-                    numpy.tile(self.att[id3],(8,1)).flatten(1),\
-                    )).flatten(1)
+                    numpy.tile(self.att[id1],(8,1)).T.flatten(),\
+                    numpy.tile(self.att[id2],(8,1)).T.flatten(),\
+                    numpy.tile(self.att[id3],(8,1)).T.flatten(),\
+                    )).T.flatten()
         return tetmesh(nod,ele,att=a)
 
     def tile(self,ndh,nid=[],trisurf=[],direction='r',center=[],att=[]):
@@ -360,8 +362,8 @@ class tetmesh:
             nod_add=trisurf.nod.T[nid].T
             ndh=ndh[nid]
         if direction=='r':
-            azi,elv,r=mesh_util.cart2sph(nod_add,center)
-            nod_add=mesh_util.sph2cart(azi,elv,r+ndh,center)
+            azi,elv,r=cart2sph(nod_add,center)
+            nod_add=sph2cart(azi,elv,r+ndh,center)
         elif direction=='x':
             nod_add[0]=nod_add[0]+ndh
         elif direction=='y':
@@ -398,7 +400,7 @@ class tetmesh:
         if self.Nele > 0:
             t_new=numpy.hstack((self.ele,t_new))
         nod_add=numpy.hstack((self.nod,nod_add))
-        trisurf1=trimesh.trimesh(nod,trisurf.ele)
+        trisurf1=trimesh(nod,trisurf.ele)
         trisurf1.ele2tetnod=t_top
         trisurf1.nid2tetnod=nid2tetnod
         if att!=[]:
@@ -444,8 +446,8 @@ class tetmesh:
             ],dtype=int)
         nod_add=trisurf.nod.copy()
         if direction=='r':
-            azi,elv,r=mesh_util.cart2sph(nod_add,center)
-            nod_add=mesh_util.sph2cart(azi,elv,r+ndh,center)
+            azi,elv,r=cart2sph(nod_add,center)
+            nod_add=sph2cart(azi,elv,r+ndh,center)
         elif direction=='x':
             nod_add[0]=nod_add[0]+ndh
         elif direction=='y':
@@ -453,7 +455,7 @@ class tetmesh:
         elif direction=='z':
             nod_add[2]=nod_add[2]+ndh
         nod_adt=nod_add-trisurf.nod
-        edge,T2E,E2T,neigh,E2V=trimesh.tri2edge(trisurf.ele)
+        edge,T2E,E2T,neigh,E2V=tri2edge(trisurf.ele)
         Nedg=edge.shape[1]
         nod_edg=(nod_add.T[edge[0]-1]+nod_add.T[edge[1]-1])/2.0
         nod_cnt=(nod_add.T[trisurf.ele[0]-1] \
@@ -481,7 +483,7 @@ class tetmesh:
             else:
                 att=numpy.hstack((self.att,numpy.ones(Nt_new)*att))
         tet=tetmesh(nod_new.T,t_new,att=att)
-        tri=trimesh.trimesh(nod_top,T_ref.T)
+        tri=trimesh(nod_top,T_ref.T)
         tri.ele2tetnod=T_top.T
         tri.nid2tetnod=numpy.arange(Nfnod+Nedg)+1*self.Nnod
         return tet,tri
@@ -525,8 +527,8 @@ class tetmesh:
             ],dtype=int)
         nod_add=trisurf.nod.copy()
         if direction=='r':
-            azi,elv,r=mesh_util.cart2sph(nod_add,center)
-            nod_add=mesh_util.sph2cart(azi,elv,r+ndh,center)
+            azi,elv,r=cart2sph(nod_add,center)
+            nod_add=sph2cart(azi,elv,r+ndh,center)
         elif direction=='x':
             nod_add[0]=nod_add[0]+ndh
         elif direction=='y':
@@ -534,7 +536,7 @@ class tetmesh:
         elif direction=='z':
             nod_add[2]=nod_add[2]+ndh
         nod_adt=nod_add-trisurf.nod
-        edge,T2E,E2T,neigh,E2V=trimesh.tri2edge(trisurf.ele)
+        edge,T2E,E2T,neigh,E2V=tri2edge(trisurf.ele)
         Nedg=edge.shape[1]
         nod_edg=(nod_add.T[edge[0]-1] \
                 +nod_add.T[edge[1]-1] \
@@ -580,7 +582,7 @@ class tetmesh:
         return tet,trisurf
 
     def join(self,tet):
-        nod,ele,att=mesh_util.mesh_join(self,tet)
+        nod,ele,att=mesh_join(self,tet)
         return tetmesh(nod=nod,ele=ele,att=att)
 
 def read_tetgen_file(basename,elemap=False):
@@ -663,7 +665,7 @@ def triface_tile_sample(tri,nid=[]):
                         else:
                             flag[inod]=0
         flag[flag==0]=-1 
-    print 'level=',level
+    print ('level=',level)
     return flag
 
 

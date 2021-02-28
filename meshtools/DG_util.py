@@ -2,7 +2,7 @@ import numpy
 from scipy import interpolate
 #import scipy.interpolate.interp2d as interp2d
 #import scipy.interpolate.RegularGridInterpolator as interp3d
-from p2n_init import p2n_init
+from .p2n_init import p2n_init
 
 def tetsubele(N):
     if N==1:
@@ -54,10 +54,11 @@ def tetsubele(N):
     return tt+1
 
 def trisubele(N):
+    N=int(N)
     if N==1:
        tt=numpy.array([numpy.arange(3)])+1
        return tt.T
-    Nsele = N*(N+1)/2 + (N-1)*N/2
+    Nsele = int(N*(N+1)/2 + (N-1)*N/2)
     tt=numpy.zeros((3,Nsele),dtype=int)
     M=numpy.zeros((N+1,N+1),dtype=int)
     sk=0
@@ -125,6 +126,7 @@ class porder2nodal:
         return x,y,z
 
     def tri_nodal_coord(self,tri,porder):
+        porder=int(porder)
         nod=tri.nod
         Nnod=tri.Nnod
         ele=tri.ele
@@ -134,7 +136,7 @@ class porder2nodal:
         vtx=nod[:,ele[0]-1]+tri.facenormal()
         ele=numpy.vstack((ele,numpy.arange(Nele)+Nnod+1))
         nod=numpy.hstack((nod,vtx))
-        Nfp=(porder+1)*(porder+2)/2
+        Nfp=int((porder+1)*(porder+2)/2)
         x,y,z=self.tetmesh_nodal_coord(nod,ele,porder)
         return x[:Nfp,:],y[:Nfp,:],z[:Nfp,:]
 
@@ -143,9 +145,9 @@ class porder2nodal:
 
     def print_all(self):
         numpy.set_printoptions(precision=20)
-        print 'def p2n_init():'
-        print '    from numpy import *'
-        print '    p2n=[]'
+        print ('def p2n_init():'        )
+        print ('    from numpy import *')
+        print ('    p2n=[]'             )
         for porder in range(1,11):
             r=self.p2n[porder-1]['r']
             s=self.p2n[porder-1]['s']
@@ -153,13 +155,13 @@ class porder2nodal:
             x=self.p2n[porder-1]['x']
             y=self.p2n[porder-1]['y']
             z=self.p2n[porder-1]['z']
-            print '    r=',numpy.array_repr(r.flatten()).replace('\n', '')
-            print '    s=',numpy.array_repr(s.flatten()).replace('\n', '')
-            print '    t=',numpy.array_repr(t.flatten()).replace('\n', '')
-            print '    x=',numpy.array_repr(x.flatten()).replace('\n', '')
-            print '    y=',numpy.array_repr(y.flatten()).replace('\n', '')
-            print '    z=',numpy.array_repr(z.flatten()).replace('\n', '')
-            print '    p2n.append({"r":r,"s":s,"t":t,"x":x,"y":y,"z":z})'
+            print ('    r=',numpy.array_repr(r.flatten()).replace('\n', ''))
+            print ('    s=',numpy.array_repr(s.flatten()).replace('\n', ''))
+            print ('    t=',numpy.array_repr(t.flatten()).replace('\n', ''))
+            print ('    x=',numpy.array_repr(x.flatten()).replace('\n', ''))
+            print ('    y=',numpy.array_repr(y.flatten()).replace('\n', ''))
+            print ('    z=',numpy.array_repr(z.flatten()).replace('\n', ''))
+            print ('    p2n.append({"r":r,"s":s,"t":t,"x":x,"y":y,"z":z})' )
 
     def verify(self):
         x0=self.p2n['x']
@@ -177,7 +179,7 @@ class porder2nodal:
                 +numpy.linalg.norm(x_ref-x)**2\
                 +numpy.linalg.norm(y_ref-y)**2\
                 +numpy.linalg.norm(z_ref-z)**2
-        print numpy.sqrt(err)
+        print (numpy.sqrt(err))
 
 class cartesian_map:
 
@@ -208,7 +210,7 @@ class cartesian_map:
     def intp(self,p):
         if self.dim == 2:
             if p.shape[0] == 2:
-                print p[0,:],p[1,:]
+                print (p[0,:],p[1,:])
                 return self.intpf(p.T)
             else:
                 return self.intpf(p)

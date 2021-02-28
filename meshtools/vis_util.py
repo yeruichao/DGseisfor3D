@@ -7,48 +7,48 @@ def vtuxml_head(filename,Nnod,Nele,Ndim,Nv,\
     NCscal=len(CellScals)
     NCvect=len(CellVects)
     fh=open(filename+".vtu","wb")
-    fh.write('<?xml version="1.0"?>\n')
-    fh.write('<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">\n');
-    fh.write('  <UnstructuredGrid>\n')
-    fh.write('    <Piece NumberOfPoints="%d" NumberOfCells="%d">\n' % (Nnod,Nele))
-    fh.write('      <Points>\n')
-    fh.write('        <DataArray type="Float32" NumberOfComponents="%d" Name="Points" format="appended" offset="0"/>\n' % Ndim)
-    fh.write('      </Points>\n')
-    fh.write('      <Cells>\n')
+    fh.write(b'<?xml version="1.0"?>\n')
+    fh.write(b'<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">\n');
+    fh.write(b'  <UnstructuredGrid>\n')
+    fh.write(b'    <Piece NumberOfPoints="%d" NumberOfCells="%d">\n' % (Nnod,Nele))
+    fh.write(b'      <Points>\n')
+    fh.write(b'        <DataArray type="Float32" NumberOfComponents="%d" Name="Points" format="appended" offset="0"/>\n' % Ndim)
+    fh.write(b'      </Points>\n')
+    fh.write(b'      <Cells>\n')
     offset=Ndim*Nnod*4+4
-    fh.write('        <DataArray type="Int32" Name="connectivity" format="appended" offset="%d"/>\n' % offset)
+    fh.write(b'        <DataArray type="Int32" Name="connectivity" format="appended" offset="%d"/>\n' % offset)
     offset=offset+Nv*Nele*4+4
-    fh.write('        <DataArray type="Int32" Name="offsets" format="appended" offset="%d"/>\n' % offset)
+    fh.write(b'        <DataArray type="Int32" Name="offsets" format="appended" offset="%d"/>\n' % offset)
     offset=offset+Nele*4+4
-    fh.write('        <DataArray type="Int8" Name="types" format="appended" offset="%d"/>\n' % offset)
+    fh.write(b'        <DataArray type="Int8" Name="types" format="appended" offset="%d"/>\n' % offset)
     offset=offset+Nele+4
-    fh.write('      </Cells>\n')
+    fh.write(b'      </Cells>\n')
     if NPscal > 0 or NPvect > 0:
-        fh.write('      <PointData>\n')
+        fh.write(b'      <PointData>\n')
         for i in range(NPscal):
-            fh.write('        <DataArray type="Float32" Name="%s" NumberOfComponents="1" format="appended" offset="%d"/>\n' \
-                    % (PointScals[i],offset))
+            fh.write(bytearray('        <DataArray type="Float32" Name="%s" NumberOfComponents="1" format="appended" offset="%d"/>\n' \
+                    % (PointScals[i],offset), encoding='utf8'))
             offset=offset+Nnod*4+4
         for i in range(NPvect):
-            fh.write('        <DataArray type="Float32" Name="%s" NumberOfComponents="3" format="appended" offset="%d"/>\n' \
-                    % (PointVects[i],offset))
+            fh.write(bytearray('        <DataArray type="Float32" Name="%s" NumberOfComponents="3" format="appended" offset="%d"/>\n' \
+                    % (PointVects[i],offset), encoding='utf8'))
             offset=offset+Ndim*Nnode*4+4
-        fh.write('      </PointData>\n')
+        fh.write(b'      </PointData>\n')
     if NCscal > 0 or NCvect > 0:
-        fh.write('      <CellData>\n')
+        fh.write(b'      <CellData>\n')
         for i in range(NCscal):
-            fh.write('        <DataArray type="Float32" Name="%s" NumberOfComponents="1" format="appended" offset="%d"/>\n' \
-                    % (CellScals[i],offset))
+            fh.write(bytearray('        <DataArray type="Float32" Name="%s" NumberOfComponents="1" format="appended" offset="%d"/>\n' \
+                    % (CellScals[i],offset), encoding='utf8'))
             offset=offset+Nele*4+4
         for i in range(NCvect):
-            fh.write('        <DataArray type="Float32" Name="%s" NumberOfComponents="3" format="appended" offset="%d"/>\n' \
-                    % (CellVects[i],offset))
+            fh.write(bytearray('        <DataArray type="Float32" Name="%s" NumberOfComponents="3" format="appended" offset="%d"/>\n' \
+                    % (CellVects[i],offset), encoding='utf8'))
             offset=offset+Ndim*Nele*4+4
-        fh.write('      </CellData>\n')
-    fh.write('    </Piece>\n')
-    fh.write('  </UnstructuredGrid>\n')
-    fh.write('  <AppendedData encoding="raw">\n')
-    fh.write(bytearray('_'))
+        fh.write(b'      </CellData>\n')
+    fh.write(b'    </Piece>\n')
+    fh.write(b'  </UnstructuredGrid>\n')
+    fh.write(b'  <AppendedData encoding="raw">\n')
+    fh.write(bytearray('_', encoding='utf8'))
     return fh
 
 def vtuxml_point(fh,nod):
@@ -79,8 +79,8 @@ def vtuxml_var(fh,var):
     fh.write(numpy.asfortranarray(var))
 
 def vtuxml_end(fh):
-    fh.write(chr(10))                                           
-    fh.write('  </AppendedData>\n')
-    fh.write('</VTKFile>')
+    fh.write(bytearray(chr(10), encoding='utf8'))                                           
+    fh.write(b'  </AppendedData>\n')
+    fh.write(b'</VTKFile>')
     fh.close()
 
