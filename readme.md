@@ -2,6 +2,10 @@
 
 Forward simulation software for 3D acousto-elastic wave and dynamic rutpure simulation based on Discontinuous Galerkin method
 
+# How to compile
+
+Go to directory /src and type "make"
+
 ## Reference
 
 Ye, Ruichao, Kundan Kumar, V. Maarten, and Michel Campillo. "A multi-rate iterative coupling scheme for simulating dynamic ruptures and seismic waves generation in the prestressed earth." Journal of Computational Physics 405 (2020): 109098.
