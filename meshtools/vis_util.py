@@ -84,3 +84,38 @@ def vtuxml_end(fh):
     fh.write(b'</VTKFile>')
     fh.close()
 
+def mesh2vtu(mesh,vtu_basename,
+        PointScals=None,PointVects=None,
+        CellScals=None,CellVects=None):
+    if PointScals is not None:
+        PtScNames=[k for k in PointScals]
+    else:
+        PtScNames=[]
+    if PointVects is not None:
+        PtVcNames=[k for k in PointVects]
+    else:
+        PtVcNames=[]
+    if CellScals is not None:
+        CeScNames=[k for k in CellScals]
+    else:
+        CeScNames=[]
+    if CellVects is not None:
+        CeVcNames=[k for k in CellVects]
+    else:
+        CeVcNames=[]
+    fh=vtuxml_head(vtu_basename,mesh.Nnod,mesh.Nele,
+            mesh.nod.shape[0],mesh.ele.shape[0],
+            PointScals=PtScNames,PointVects=PtVcNames,
+            CellScals=CeScNames,CellVects=CeVcNames)
+    vtuxml_point(fh,mesh.nod)
+    vtuxml_cell(fh,mesh.ele)
+    for k in PtScNames:
+        vtuxml_var(fh,PointScals[k])
+    for k in PtVcNames:
+        vtuxml_var(fh,PointVects[k])
+    for k in CeScNames:
+        vtuxml_var(fh,CellScals[k])
+    for k in CeVcNames:
+        vtuxml_var(fh,CellVects[k])
+    vtuxml_end(fh)
+
